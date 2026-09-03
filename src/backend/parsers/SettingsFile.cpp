@@ -251,11 +251,10 @@ void LoadContext::handle_key_attrib(const size_t lineno, const QString& key, con
 
     QVector<QKeySequence> keyseqs;
 
-    const auto key_strs = val.splitRef(',', Qt::SkipEmptyParts);
-    for (const QStringRef& strref : key_strs) {
+    const auto key_strs = val.split(',', Qt::SkipEmptyParts);
+    for (const QString& strref : key_strs) {
         const QString str = strref
             .trimmed()
-            .toString()
             .replace(COMMA_NAME_STR, QLatin1String(","));
 
         const auto gamepadbtn_it = reverse_gamepadButtonNames.find(str);
@@ -290,7 +289,6 @@ void SaveContext::save() const
     }
 
     QTextStream stream(&config_file);
-    stream.setCodec("UTF-8");
 
     print_general(stream);
     print_providers(stream);

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>${EXECUTABLE_NAME}</string>
+    <string>pegasus-fe</string>
     <key>CFBundleGetInfoString</key>
     <string>Created by Qt/QMake</string>
     <key>CFBundleIconFile</key>
@@ -28,5 +28,10 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>LSEnvironment</key>
+    <dict>
+        <key>QT_ENABLE_ACCESSIBILITY</key>
+        <string>0</string>
+    </dict>
 </dict>
 </plist>

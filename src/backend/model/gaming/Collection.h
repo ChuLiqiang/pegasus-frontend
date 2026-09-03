@@ -18,6 +18,7 @@
 #pragma once
 
 #include "GameListModel.h"
+#include "model/gaming/Assets.h"
 
 #include <QString>
 
@@ -26,7 +27,6 @@
 #include "model/gaming/Game.h"
 #endif
 
-namespace model { class Assets; }
 namespace model { class Game; }
 
 

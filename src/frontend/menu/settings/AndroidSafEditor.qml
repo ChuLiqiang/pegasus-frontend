@@ -33,7 +33,7 @@ FocusScope {
     opacity: focus ? 1.0 : 0.0
     Behavior on opacity { PropertyAnimation { duration: 150 } }
 
-    Keys.onPressed: {
+    Keys.onPressed: (event) => {
         if (api.keys.isCancel(event) && !event.isAutoRepeat) {
             event.accepted = true;
             root.close();
@@ -117,7 +117,7 @@ FocusScope {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: {
+                        onClicked: (mouse) => {
                             const new_idx = list.indexAt(mouse.x, list.contentY + mouse.y);
                             if (new_idx >= 0) {
                                 list.currentIndex = new_idx;

@@ -21,3 +21,25 @@ build*/
 *.qmlc
 *.jsc
 *.autosave
+
+# ignore in-tree qmake build artifacts (this checkout was built in-place,
+# not in a separate build*/ dir)
+*.o
+*.a
+*.moc
+Makefile
+Makefile.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+.qmake.stash
+*.app/
+object_script.*
+src/app/.qm/
+*_qml.cpp
+*_qmlcache.qrc
+qmlcache_loader.cpp
+qmake_qmake_qm_files.qrc
+target_wrapper.sh
+.._*_qml.cpp

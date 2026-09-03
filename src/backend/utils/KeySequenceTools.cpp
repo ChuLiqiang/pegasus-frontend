@@ -18,7 +18,6 @@
 #include "KeySequenceTools.h"
 
 #include "AppSettings.h"
-#include "utils/FakeQKeyEvent.h"
 
 #include <QKeyEvent>
 #include <array>
@@ -65,11 +64,16 @@ QKeySequence qmlevent_to_keyseq(const QVariant& event_variant)
     if (::strcmp(event_qobj_class, QML_KEYEVENT_CLASSNAME) != 0)
         return {};
 
-    const QKeyEvent& event = static_cast<const FakeQKeyEvent*>(event_qobj)->event;
-    if (is_modifier(event.key()))
+    // NOTE: QQuickKeyEvent's internal layout is private and differs between
+    // Qt versions (eg. Qt6 no longer stores a QKeyEvent member at all), so
+    // the key/modifiers must be read through its public Q_PROPERTYs instead
+    // of an unsafe reinterpret cast.
+    const int key = event_qobj->property("key").toInt();
+    if (is_modifier(key))
         return {};
 
-    const int keyseq_key = event.key() | keymods_to_int(event.modifiers());
+    const auto modifiers = static_cast<Qt::KeyboardModifiers>(event_qobj->property("modifiers").toInt());
+    const int keyseq_key = key | keymods_to_int(modifiers);
     return QKeySequence(keyseq_key);
 }
 } // namespace utils

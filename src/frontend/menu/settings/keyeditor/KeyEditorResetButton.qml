@@ -29,13 +29,13 @@ Rectangle {
     readonly property color colorHover: "#c55"
     property real activationPercent: 0.0
 
-    Keys.onPressed: {
+    Keys.onPressed: (event) => {
         if (api.keys.isAccept(event) && !event.isAutoRepeat) {
             event.accepted = true;
             root.startActivation();
         }
     }
-    Keys.onReleased: {
+    Keys.onReleased: (event) => {
         if (api.keys.isAccept(event) && !event.isAutoRepeat) {
             event.accepted = true;
             root.stopActivation();

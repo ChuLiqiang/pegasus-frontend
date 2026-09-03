@@ -45,8 +45,8 @@ Item {
             Internal.gamepad.configureButton(deviceId, deviceField);
     }
 
-    Keys.onPressed: event.accept = true
-    Keys.onReleased: event.accept = true
+    Keys.onPressed: (event) => { event.accept = true }
+    Keys.onReleased: (event) => { event.accept = true }
 
 
     anchors.fill: parent

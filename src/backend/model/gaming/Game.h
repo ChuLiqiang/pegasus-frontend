@@ -19,6 +19,7 @@
 
 #include "CollectionListModel.h"
 #include "GameFileListModel.h"
+#include "model/gaming/Assets.h"
 
 #include <QDateTime>
 #include <QStringList>
@@ -29,7 +30,6 @@
 #include "model/gaming/GameFile.h"
 #endif
 
-namespace model { class Assets; }
 namespace model { class GameFile; }
 namespace model { class Collection; }
 

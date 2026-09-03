@@ -112,8 +112,8 @@ void apply_game_fields(
                 }
                 break;
             case GameField::PLAYMODE:
-                for (const QStringRef& ref : pair.second.splitRef(QChar(';')))
-                    game.genreList().append(ref.trimmed().toString());
+                for (const QString& ref : pair.second.split(QChar(';')))
+                    game.genreList().append(ref.trimmed());
                 break;
             case GameField::EMULATOR_ID:
                 emu_id = pair.second;

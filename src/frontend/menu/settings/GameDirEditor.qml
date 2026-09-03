@@ -42,7 +42,7 @@ FocusScope {
             root.close();
     }
 
-    Keys.onPressed: {
+    Keys.onPressed: (event) => {
         if (api.keys.isCancel(event) && !event.isAutoRepeat) {
             event.accepted = true;
             root.closeMaybe();
@@ -151,7 +151,7 @@ FocusScope {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: {
+                        onClicked: (mouse) => {
                             const new_idx = list.indexAt(mouse.x, list.contentY + mouse.y);
                             if (new_idx >= 0) {
                                 list.currentIndex = new_idx;

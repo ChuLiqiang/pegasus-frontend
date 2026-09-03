@@ -33,20 +33,20 @@
 
 
 namespace {
-QVector<QStringRef> split_list(const QString& str)
+QStringList split_list(const QString& str)
 {
     // FIXME: don't leave statics around
     static const QRegularExpression separator(QStringLiteral("[,\\s]"));
-    return str.splitRef(separator, Qt::SkipEmptyParts);
+    return str.split(separator, Qt::SkipEmptyParts);
 }
 
 /// returns a list of unique, '*.'-prefixed lowercase file extensions
 QStringList parse_filters(const QString& filters_raw) {
     const QString filters_lowercase = filters_raw.toLower();
-    const QVector<QStringRef> filter_refs = split_list(filters_lowercase);
+    const QStringList filter_refs = split_list(filters_lowercase);
 
     QStringList filter_list;
-    for (const QStringRef& filter_ref : filter_refs)
+    for (const QString& filter_ref : filter_refs)
         filter_list.append(QChar('*') + filter_ref.trimmed());
 
     filter_list.removeDuplicates();
@@ -81,7 +81,6 @@ std::vector<QString> read_mame_blacklists(const QString& log_tag, const std::vec
         const QString line_tail = QStringLiteral("</%1>").arg(blacklist_entry.second);
 
         QTextStream stream(&file);
-        stream.setCodec("UTF-8");
 
         QString line;
         int hit_count = 0;
@@ -127,7 +126,7 @@ size_t find_games_for(
     }();
 
     // use the blacklist maybe
-    const QVector<QStringRef> platforms = split_list(sysentry.platforms);
+    const QStringList platforms = split_list(sysentry.platforms);
     const bool use_blacklist = VEC_CONTAINS(platforms, QLatin1String("arcade"))
                             || VEC_CONTAINS(platforms, QLatin1String("neogeo"));
 
