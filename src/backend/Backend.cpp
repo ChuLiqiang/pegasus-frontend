@@ -25,6 +25,9 @@
 #include "Paths.h"
 #include "platform/PowerCommands.h"
 #include "types/AppCloseType.h"
+#ifdef Q_OS_MACOS
+#include "platform/macos/NativeFullscreen.h"
+#endif
 
 // For type registration
 #include "model/Api.h"
@@ -40,7 +43,6 @@
 
 #include <QGuiApplication>
 #include <QQmlEngine>
-#include <QTimer>
 
 #if defined(WITH_SDL_GAMEPAD) || defined(WITH_SDL_POWER)
 #include <SDL.h>
@@ -284,19 +286,25 @@ void Backend::onProcessLaunched()
 
 void Backend::onProcessFinished()
 {
+    // SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) (inside gamepad().start())
+    // is a synchronous native call that on macOS can itself disturb the
+    // application's window/activation state - run it before (re)creating
+    // our fullscreen window, not after, so it can't knock the freshly
+    // created window back out of fullscreen.
+    m_api_private->gamepad().start(m_args);
+
 #ifdef Q_OS_MACOS
     // The game that was just running (eg. RetroArch) may have held native
     // fullscreen/frontmost status for its entire session, during which
-    // Pegasus itself had zero windows open. Give macOS a moment to actually
-    // hand activation back before we create a new window that immediately
-    // wants to go fullscreen itself - see the equivalent settle delay in
-    // ProcessLauncher::onFrontendTornDown() for the launch-side version of
-    // this same class of issue.
-    QTimer::singleShot(400, m_frontend, [this]() { m_frontend->rebuild(); });
+    // Pegasus itself had zero windows open. macOS does not automatically
+    // hand activation back to a windowless background process once that
+    // game quits, so we force it - and wait for confirmation it actually
+    // happened - before creating a window that immediately wants native
+    // fullscreen; see NativeFullscreen.mm for why.
+    platform::macos::activate_app_then([this]() { m_frontend->rebuild(); });
 #else
     m_frontend->rebuild();
 #endif
-    m_api_private->gamepad().start(m_args);
 }
 
 } // namespace backend

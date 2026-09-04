@@ -50,4 +50,6 @@ private:
     QObject* const m_api_public;
     QObject* const m_api_private;
     QQmlApplicationEngine* m_engine;
+
+    void teardown_engine();
 };

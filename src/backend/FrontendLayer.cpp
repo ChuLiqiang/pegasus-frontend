@@ -24,8 +24,12 @@
 #ifdef Q_OS_ANDROID
 #include "platform/AndroidAppIconProvider.h"
 #endif
+#ifdef Q_OS_MACOS
+#include "platform/macos/NativeFullscreen.h"
+#endif
 
 #include <QQmlApplicationEngine>
+#include <QWindow>
 #include <QQmlContext>
 #include <QQmlNetworkAccessManagerFactory>
 
@@ -73,6 +77,15 @@ void FrontendLayer::rebuild()
     m_engine->rootContext()->setContextProperty(QStringLiteral("Internal"), m_api_private);
     m_engine->load(QUrl(QStringLiteral("qrc:/frontend/main.qml")));
 
+#ifdef Q_OS_MACOS
+    {
+        const auto root_objects = m_engine->rootObjects();
+        QWindow* const window = root_objects.isEmpty()
+            ? nullptr : qobject_cast<QWindow*>(root_objects.first());
+        platform::macos::ensure_fullscreen_sticks(window, []() {});
+    }
+#endif
+
     emit rebuildComplete();
 }
 
@@ -80,6 +93,24 @@ void FrontendLayer::teardown()
 {
     Q_ASSERT(m_engine);
 
+#ifdef Q_OS_MACOS
+    // If our window is currently in native (Cocoa Spaces) fullscreen, make
+    // sure that's genuinely, fully exited before tearing anything down -
+    // otherwise a game launched right after can lose its own fullscreen
+    // request to our still-in-progress Space transition (the request is
+    // silently dropped by the WindowServer, with no retry).
+    const auto root_objects = m_engine->rootObjects();
+    QWindow* const window = root_objects.isEmpty()
+        ? nullptr : qobject_cast<QWindow*>(root_objects.first());
+
+    platform::macos::exit_fullscreen_then(window, [this]() { teardown_engine(); });
+#else
+    teardown_engine();
+#endif
+}
+
+void FrontendLayer::teardown_engine()
+{
     // signal forwarding
     connect(m_engine, &QQmlApplicationEngine::destroyed,
             this, &FrontendLayer::teardownComplete);

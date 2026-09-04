@@ -10,7 +10,12 @@ win32 {
     SOURCES += $$PWD/PowerCommands_win.cpp
 }
 else:unix:!android {
-    macx: SOURCES += $$PWD/PowerCommands_mac.cpp
+    macx {
+        SOURCES += $$PWD/PowerCommands_mac.cpp
+        HEADERS += $$PWD/macos/NativeFullscreen.h
+        OBJECTIVE_SOURCES += $$PWD/macos/NativeFullscreen.mm
+        LIBS += -framework Cocoa
+    }
     else: SOURCES += $$PWD/PowerCommands_linux.cpp
 }
 else {

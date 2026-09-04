@@ -32,7 +32,6 @@
 #include <QDir>
 #include <QUrl>
 #include <QRegularExpression>
-#include <QTimer>
 
 
 namespace {
@@ -241,14 +240,12 @@ void ProcessLauncher::onLaunchRequested(const model::GameFile* q_gamefile)
 #ifdef Q_OS_MACOS
 void ProcessLauncher::onFrontendTornDown()
 {
-    // QObject::destroyed() firing only means the C++ QQmlApplicationEngine
-    // (and the QWindow objects it owned) are gone - it does not guarantee
-    // the underlying native NSWindow has finished its fullscreen Space-exit
-    // animation at the WindowServer level. Give that a moment to actually
-    // settle before starting a process that wants its own native fullscreen.
-    QTimer::singleShot(600, this, [this]() {
-        runProcess(m_pending_command, m_pending_args, m_pending_workdir);
-    });
+    // By the time teardownComplete fires, FrontendLayer::teardown() has
+    // already confirmed (via the native NSWindowDidExitFullScreenNotification)
+    // that our own fullscreen Space transition, if any, has genuinely
+    // finished - see NativeFullscreen.mm - so it's safe to start the game
+    // process now without racing it.
+    runProcess(m_pending_command, m_pending_args, m_pending_workdir);
 }
 #endif
 
@@ -281,6 +278,11 @@ void ProcessLauncher::runProcess(const QString& command, const QStringList& args
     // platforms, where teardown instead happens after the process starts.
     m_process->waitForFinished(-1);
     emit processFinished();
+    // Note: the game's own fullscreen Space isn't necessarily torn down at
+    // the WindowServer level yet even though its process has exited - see
+    // FrontendLayer::rebuild()'s use of ensure_fullscreen_sticks(), which
+    // verifies and repairs Pegasus's own window against that once it's
+    // (re)created, instead of guessing how long to wait here first.
 #endif
 
 #else // Q_OS_ANDROID
