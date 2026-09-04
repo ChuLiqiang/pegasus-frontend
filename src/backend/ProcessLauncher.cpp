@@ -32,6 +32,7 @@
 #include <QDir>
 #include <QUrl>
 #include <QRegularExpression>
+#include <QTimer>
 
 
 namespace {
@@ -220,8 +221,36 @@ void ProcessLauncher::onLaunchRequested(const model::GameFile* q_gamefile)
 
 
     beforeRun(gamefile.fileinfo().absoluteFilePath());
+
+#ifdef Q_OS_MACOS
+    // On macOS, a launched game that wants native fullscreen must not
+    // start while Pegasus's own fullscreen window/Space still exists:
+    // if both are transitioning around the same time, the child's
+    // fullscreen request silently and permanently fails (it isn't
+    // retried later). Tear down our UI first and only start the process
+    // once that is fully complete - see onFrontendTornDown().
+    m_pending_command = command;
+    m_pending_args = args;
+    m_pending_workdir = workdir;
+    emit readyToTeardown();
+#else
     runProcess(command, args, workdir);
+#endif
 }
+
+#ifdef Q_OS_MACOS
+void ProcessLauncher::onFrontendTornDown()
+{
+    // QObject::destroyed() firing only means the C++ QQmlApplicationEngine
+    // (and the QWindow objects it owned) are gone - it does not guarantee
+    // the underlying native NSWindow has finished its fullscreen Space-exit
+    // animation at the WindowServer level. Give that a moment to actually
+    // settle before starting a process that wants its own native fullscreen.
+    QTimer::singleShot(600, this, [this]() {
+        runProcess(m_pending_command, m_pending_args, m_pending_workdir);
+    });
+}
+#endif
 
 void ProcessLauncher::runProcess(const QString& command, const QStringList& args, const QString& workdir)
 {
@@ -244,6 +273,15 @@ void ProcessLauncher::runProcess(const QString& command, const QStringList& args
     m_process->setWorkingDirectory(workdir);
     m_process->start(command, args, QProcess::ReadOnly);
     m_process->waitForStarted(-1);
+
+#ifdef Q_OS_MACOS
+    // Pegasus's UI is already torn down at this point (see
+    // onLaunchRequested()/onFrontendTornDown()), so block here until the
+    // game exits - mirroring what onTeardownComplete() does on other
+    // platforms, where teardown instead happens after the process starts.
+    m_process->waitForFinished(-1);
+    emit processFinished();
+#endif
 
 #else // Q_OS_ANDROID
     const QString result = android::run_am_call(args);
@@ -327,7 +365,14 @@ void ProcessLauncher::beforeRun(const QString& game_path)
 void ProcessLauncher::afterRun()
 {
 #ifndef Q_OS_ANDROID
-    Q_ASSERT(m_process);
+    // onProcessError() and onProcessFinished() can both fire for the same
+    // process (eg. the child exits abnormally right after reporting an
+    // error), which would otherwise call afterRun() twice and deleteLater()
+    // an already-null m_process (Q_ASSERT is compiled out in release
+    // builds, so that would crash instead of catching the bug).
+    if (!m_process)
+        return;
+
     m_process->deleteLater();
     m_process = nullptr;
 #endif

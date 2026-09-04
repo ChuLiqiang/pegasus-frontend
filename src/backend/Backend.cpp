@@ -189,11 +189,20 @@ Backend::Backend(const CliArgs& args)
     QObject::connect(m_launcher, &ProcessLauncher::processLaunchError,
                      m_api_public, &model::ApiObject::onGameLaunchError);
 
+#ifdef Q_OS_MACOS
+    // macOS: tear down our own (possibly fullscreen) window BEFORE the
+    // game process is started, then launch it once teardown is fully
+    // complete - see ProcessLauncher::onFrontendTornDown() for why.
+    QObject::connect(m_launcher, &ProcessLauncher::readyToTeardown,
+                     [this](){ onProcessLaunched(); });
+    QObject::connect(m_frontend, &FrontendLayer::teardownComplete,
+                     m_launcher, &ProcessLauncher::onFrontendTornDown);
+#else
     QObject::connect(m_launcher, &ProcessLauncher::processLaunchOk,
                      [this](){ onProcessLaunched(); });
-
     QObject::connect(m_frontend, &FrontendLayer::teardownComplete,
                      m_launcher, &ProcessLauncher::onTeardownComplete);
+#endif
 
     // when the game ends, the Launcher wakes up the Api and the Frontend
     QObject::connect(m_launcher, &ProcessLauncher::processFinished,

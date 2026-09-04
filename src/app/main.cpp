@@ -60,6 +60,12 @@ int main(int argc, char *argv[])
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
     QGuiApplication app(argc, argv);
+    // Pegasus intentionally destroys and recreates its window around every
+    // game launch (see FrontendLayer::teardown()/rebuild()), which means
+    // there are brief windows with zero top-level windows open. Without
+    // this, Qt's default quitOnLastWindowClosed can tear down the whole
+    // application during exactly that gap instead of just rebuilding the UI.
+    app.setQuitOnLastWindowClosed(false);
     app.setApplicationName(QStringLiteral("pegasus-frontend"));
     app.setApplicationVersion(QStringLiteral(GIT_REVISION));
     app.setOrganizationName(QStringLiteral("pegasus-frontend"));

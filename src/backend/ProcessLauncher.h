@@ -43,10 +43,16 @@ signals:
     void processLaunchError(QString);
     void processRuntimeError(QString);
     void processFinished();
+#ifdef Q_OS_MACOS
+    void readyToTeardown();
+#endif
 
 public slots:
     void onLaunchRequested(const model::GameFile*);
     void onTeardownComplete();
+#ifdef Q_OS_MACOS
+    void onFrontendTornDown();
+#endif
 
 private slots:
     void onProcessStarted();
@@ -55,6 +61,11 @@ private slots:
 
 private:
     QProcess* m_process;
+#ifdef Q_OS_MACOS
+    QString m_pending_command;
+    QStringList m_pending_args;
+    QString m_pending_workdir;
+#endif
 
     void runProcess(const QString&, const QStringList&, const QString&);
 
