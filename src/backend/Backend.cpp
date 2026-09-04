@@ -40,6 +40,7 @@
 
 #include <QGuiApplication>
 #include <QQmlEngine>
+#include <QTimer>
 
 #if defined(WITH_SDL_GAMEPAD) || defined(WITH_SDL_POWER)
 #include <SDL.h>
@@ -283,7 +284,18 @@ void Backend::onProcessLaunched()
 
 void Backend::onProcessFinished()
 {
+#ifdef Q_OS_MACOS
+    // The game that was just running (eg. RetroArch) may have held native
+    // fullscreen/frontmost status for its entire session, during which
+    // Pegasus itself had zero windows open. Give macOS a moment to actually
+    // hand activation back before we create a new window that immediately
+    // wants to go fullscreen itself - see the equivalent settle delay in
+    // ProcessLauncher::onFrontendTornDown() for the launch-side version of
+    // this same class of issue.
+    QTimer::singleShot(400, m_frontend, [this]() { m_frontend->rebuild(); });
+#else
     m_frontend->rebuild();
+#endif
     m_api_private->gamepad().start(m_args);
 }
 
