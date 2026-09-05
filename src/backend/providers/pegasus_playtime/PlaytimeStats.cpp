@@ -166,6 +166,48 @@ void update_modelgame(model::GameFile* const gamefile, const QDateTime& start_ti
     gamefile->update_playstats(1, duration, start_time.addSecs(duration));
 }
 
+// GameFile is a QObject that lives on (and can be destroyed on) the main
+// thread; reading its members directly from a background thread races with
+// that. Fetch whatever's needed through a blocking call marshaled onto the
+// GameFile's own thread instead - using it as the invokeMethod context also
+// means this safely no-ops (returning an empty string) if it's already been
+// destroyed, rather than dereferencing a half-torn object.
+QString safe_game_path(model::GameFile* const gamefile)
+{
+    QString path;
+    QMetaObject::invokeMethod(gamefile, [gamefile, &path]{
+        path = gamefile->hasUri() ? gamefile->uri() : ::clean_abs_path(gamefile->fileinfo());
+    }, Qt::BlockingQueuedConnection);
+    return path;
+}
+
+bool safe_has_uri(model::GameFile* const gamefile)
+{
+    bool result = false;
+    QMetaObject::invokeMethod(gamefile, [gamefile, &result]{
+        result = gamefile->hasUri();
+    }, Qt::BlockingQueuedConnection);
+    return result;
+}
+
+QString safe_uri(model::GameFile* const gamefile)
+{
+    QString uri;
+    QMetaObject::invokeMethod(gamefile, [gamefile, &uri]{
+        uri = gamefile->uri();
+    }, Qt::BlockingQueuedConnection);
+    return uri;
+}
+
+QString safe_clean_path(model::GameFile* const gamefile)
+{
+    QString path;
+    QMetaObject::invokeMethod(gamefile, [gamefile, &path]{
+        path = ::clean_abs_path(gamefile->fileinfo());
+    }, Qt::BlockingQueuedConnection);
+    return path;
+}
+
 } // namespace
 
 
@@ -322,9 +364,7 @@ void PlaytimeStats::start_processing()
             }
 
             for (const QueueEntry& entry : m_active_tasks) {
-                const QString path = entry.gamefile->hasUri()
-                    ? entry.gamefile->uri()
-                    : ::clean_abs_path(entry.gamefile->fileinfo());
+                const QString path = safe_game_path(entry.gamefile);
                 const int path_id = get_path_id(display_name(), path);
                 if (path_id >= 0)
                     save_play_entry(display_name(), path_id, entry.launch_time, entry.duration);
@@ -332,11 +372,11 @@ void PlaytimeStats::start_processing()
 
             for (const MigrationQueueEntry& entry : m_active_migrations) {
                 // we don't have a uri to migrate??
-                if (!entry.gamefile->hasUri())
+                if (!safe_has_uri(entry.gamefile))
                     continue;
-                const QString uri = entry.gamefile->uri();
+                const QString uri = safe_uri(entry.gamefile);
 
-                const QString path = ::clean_abs_path(entry.gamefile->fileinfo());
+                const QString path = safe_clean_path(entry.gamefile);
                 const int old_path_id = get_path_id(display_name(), path, false);
                 // no path ID to migrate
                 if (old_path_id == -1)
