@@ -56,7 +56,13 @@ void GameFile::launch()
 
 void GameFile::update_playstats(int playcount, qint64 playtime, QDateTime last_played)
 {
-    m_data.playstats.last_played = std::max(m_data.playstats.last_played, std::move(last_played));
+    // A fresh GameFile's last_played (or an incoming one with no recorded
+    // date) is a null/invalid QDateTime - comparing that against another
+    // QDateTime via std::max() (Qt6's QDateTime relational operators)
+    // crashes, so only compare once both sides are valid.
+    if (last_played.isValid()
+            && (!m_data.playstats.last_played.isValid() || m_data.playstats.last_played < last_played))
+        m_data.playstats.last_played = std::move(last_played);
     m_data.playstats.play_time += playtime;
     m_data.playstats.play_count += playcount;
     emit playStatsChanged();
