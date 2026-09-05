@@ -62,6 +62,16 @@ macx {
     QMAKE_TARGET_BUNDLE_PREFIX = org.pegasus-frontend
     QMAKE_INFO_PLIST = platform/macos/Info.plist.in
 
+    # qmake's auto-generated rule for the bundled Info.plist has no
+    # prerequisites, so plain `make` only regenerates it if the file is
+    # missing - editing this template afterwards is silently ignored on
+    # incremental builds. Add the missing dependency edge (no recipe, so
+    # it merges with qmake's own recipe-bearing rule for the same target)
+    # so changes here actually take effect.
+    info_plist_dep.target = Pegasus.app/Contents/Info.plist
+    info_plist_dep.depends = $$PWD/platform/macos/Info.plist.in
+    QMAKE_EXTRA_TARGETS += info_plist_dep
+
     target.path = $${INSTALL_BINDIR}
 }
 android {
