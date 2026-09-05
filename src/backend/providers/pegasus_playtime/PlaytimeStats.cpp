@@ -291,8 +291,21 @@ void PlaytimeStats::start_processing()
         emit startedWriting();
 
         while (!m_active_tasks.empty() || !m_active_migrations.empty()) {
-            for (const QueueEntry& entry : m_active_tasks)
-                update_modelgame(entry.gamefile, entry.launch_time, entry.duration);
+            for (const QueueEntry& entry : m_active_tasks) {
+                // update_modelgame() mutates the (QML-facing) GameFile and
+                // emits playStatsChanged() - GameFile lives on the main
+                // thread and isn't safe to touch from here, so marshal the
+                // call over instead of running it directly on this
+                // QtConcurrent worker thread. Using `gamefile` as the
+                // invokeMethod context means this silently no-ops if it
+                // was already destroyed by the time this runs.
+                model::GameFile* const gamefile = entry.gamefile;
+                const QDateTime launch_time = entry.launch_time;
+                const qint64 duration = entry.duration;
+                QMetaObject::invokeMethod(gamefile, [gamefile, launch_time, duration]{
+                    update_modelgame(gamefile, launch_time, duration);
+                });
+            }
 
             SqliteDb channel(m_db_path);
             if (!channel.open()) {
