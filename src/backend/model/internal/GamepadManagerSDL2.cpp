@@ -526,10 +526,16 @@ void GamepadManagerSDL2::add_controller_by_idx(int device_idx)
 
 void GamepadManagerSDL2::remove_pad_by_iid(SDL_JoystickID instance_id)
 {
-    Q_ASSERT(m_iid_to_idx.count(instance_id) == 1);
-    Q_ASSERT(m_idx_to_device.count(m_iid_to_idx.at(instance_id)) == 1);
+    const auto iid_it = m_iid_to_idx.find(instance_id);
+    if (iid_it == m_iid_to_idx.cend()) {
+        // SDL can report a controller as removed even though it was never
+        // successfully added (eg. SDL_GameControllerOpen failed for it, or
+        // a duplicate/stale removal event for an already-removed device) -
+        // there is nothing to clean up for it here.
+        return;
+    }
 
-    const int device_idx = m_iid_to_idx.at(instance_id);
+    const int device_idx = iid_it->second;
     m_idx_to_device.erase(device_idx);
     m_iid_to_idx.erase(instance_id);
 
